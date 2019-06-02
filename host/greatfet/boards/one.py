@@ -9,6 +9,7 @@ from ..peripherals.spi_bus import SPIBus
 from ..peripherals.firmware import DeviceFirmwareManager
 from ..peripherals.pattern_generator import PatternGenerator
 from ..peripherals.sdir import SDIRTransceiver
+from ..peripherals.taxi import TAXITransceiver
 
 from ..glitchkit import *
 
@@ -164,6 +165,9 @@ class GreatFETOne(GreatFETBoard):
 
         if self.supports_api('sdir'):
             self.sdir = SDIRTransceiver(self)
+
+        if self.supports_api('taxi'):
+            self.taxi = TAXITransceiver(self)
 
         # Add objects for each of our LEDs.
         self._populate_leds(self.SUPPORTED_LEDS)
