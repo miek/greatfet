@@ -10,6 +10,7 @@
 #include <drivers/gpio.h>
 #include <drivers/dac/ad970x.h>
 #include <drivers/sgpio.h>
+#include <drivers/timer.h>
 
 #include "../pin_manager.h"
 #include "../usb_streaming.h"
@@ -201,6 +202,21 @@ static int terminate_taxi(void)
 	return 0;
 }
 
+static void frame_sync_wait(sgpio_t *sgpio)
+{
+	const uint32_t duration = 1000;
+	uint32_t base = get_time();
+	bool prev = false;
+	bool dstrb = false;
+	while (get_time_since(base) < duration) {
+		dstrb = !!(sgpio->reg->sgpio_pin_state & (1<<9));
+		if (!prev && dstrb) {
+			base = get_time();
+		}
+		prev = dstrb;
+	}
+}
+
 static int verb_start_receive(struct command_transaction *trans)
 {
 	int rc;
@@ -222,7 +238,10 @@ static int verb_start_receive(struct command_transaction *trans)
 
 	// Finally, start the SGPIO streaming for the relevant buffer.
 	usb_streaming_start_streaming_to_host(&taxi_functions[0].position_in_buffer, &taxi_functions[0].data_in_buffer);
-	gpio_clear_pin(trigger);
+
+	frame_sync_wait(&taxi);
+	frame_sync_wait(&taxi);
+
 	sgpio_run(&taxi);
 
 	return 0;
