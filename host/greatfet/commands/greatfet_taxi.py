@@ -5,7 +5,9 @@
 from __future__ import print_function
 
 import argparse
+import cv2
 import errno
+import numpy as np
 import sys
 import time
 
@@ -13,6 +15,20 @@ import greatfet
 from greatfet import GreatFET
 from greatfet.protocol import vendor_requests
 from greatfet.utils import log_silent, log_verbose
+
+def find_image_start(buf):
+    found = False
+    try:
+        for i in range(len(buf)-7):
+            if buf[i:i+8] == b'\xff\x7f\xff\x7f\xff\x7f\xff\x7f':
+                found = True
+
+            if found and buf[i] != 0xff and buf[i] != 0x7f:
+                return i-2
+
+    except Exception:
+       pass
+    return -1
 
 
 def main():
@@ -48,13 +64,51 @@ def main():
         time.sleep(1)
         with open(args.filename, 'wb') as f:
             try:
+                buf = b''
+                level = 20000
+                gain = 10.0
+                sync = False
                 while True:
-                    d = device.taxi.read()
-                    # print(d)
-                    f.write(d)
+                    rd = device.taxi.read()
+                    buf += rd
+                    height = 245
+                    width = 327
+
+                    if len(buf) >= height*width*4:
+                        idx = find_image_start(buf)
+                        if idx >= 0:
+                            sync = True
+                            buf = buf[idx:]
+                        else:
+                            buf = b''
+
+                    if len(buf) >= height*width*2 and sync:
+                        sync = False
+                        d = np.frombuffer(buf[0:height*width*2], dtype=np.uint16).reshape(height, width)
+                        buf = buf[height*width*2:]
+                        if d[240][326] != 0x7fff:
+                            continue
+
+                        im = (((d-level)*gain)/256).astype(np.uint8)
+                        im = cv2.applyColorMap(im, cv2.COLORMAP_RAINBOW)
+
+                        # Display the resulting frame
+                        cv2.imshow('frame', im)
+                        key = cv2.waitKey(1) & 0xFF
+                        if key == ord('q'):
+                            break
+                        elif key == ord('a'):
+                            gain -= 0.1
+                        elif key == ord('d'):
+                            gain += 0.1
+                        elif key == ord('w'):
+                            level -= 100
+                        elif key == ord('s'):
+                            level += 100
             except KeyboardInterrupt:
                 pass
         device.taxi.stop()
+        cv2.destroyAllWindows()
 
 
 if __name__ == '__main__':
