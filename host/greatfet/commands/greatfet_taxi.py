@@ -68,11 +68,12 @@ def main():
                 level = 20000
                 gain = 10.0
                 sync = False
+                height = 245
+                width = 327
+                out = cv2.VideoWriter('outpy.avi',cv2.VideoWriter_fourcc('M','J','P','G'), 15, (width,height))
                 while True:
                     rd = device.taxi.read()
                     buf += rd
-                    height = 245
-                    width = 327
 
                     if len(buf) >= height*width*4:
                         idx = find_image_start(buf)
@@ -92,6 +93,7 @@ def main():
                         im = (((d-level)*gain)/256).astype(np.uint8)
                         im = cv2.applyColorMap(im, cv2.COLORMAP_RAINBOW)
 
+                        out.write(im)
                         # Display the resulting frame
                         cv2.imshow('frame', im)
                         key = cv2.waitKey(1) & 0xFF
@@ -108,6 +110,7 @@ def main():
             except KeyboardInterrupt:
                 pass
         device.taxi.stop()
+        out.release()
         cv2.destroyAllWindows()
 
 
