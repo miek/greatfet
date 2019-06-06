@@ -65,8 +65,8 @@ def main():
         with open(args.filename, 'wb') as f:
             try:
                 buf = b''
-                level = 20000
-                gain = 10.0
+                level = 32000
+                gain = 30.0
                 sync = False
                 height = 245
                 width = 327
@@ -91,7 +91,7 @@ def main():
                             continue
 
                         im = (((d-level)*gain)/256).astype(np.uint8)
-                        im = cv2.applyColorMap(im, cv2.COLORMAP_RAINBOW)
+                        im = cv2.applyColorMap(im, cv2.COLORMAP_JET)
 
                         out.write(im)
                         # Display the resulting frame
@@ -104,9 +104,9 @@ def main():
                         elif key == ord('d'):
                             gain += 0.1
                         elif key == ord('w'):
-                            level -= 100
+                            level -= 500
                         elif key == ord('s'):
-                            level += 100
+                            level += 500
             except KeyboardInterrupt:
                 pass
         device.taxi.stop()
